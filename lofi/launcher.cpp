@@ -6,6 +6,7 @@
 #include <QList>
 #include <QProcess>
 #include <algorithm>
+#include <stdio.h>
 
 
 namespace fs = std::filesystem;
@@ -15,7 +16,6 @@ launcher::launcher(QWidget *parent) :
 {
     load_config();
 
-    printf("%s",backgroundcolor.c_str());
     Qt::WindowFlags flags = this->windowFlags();
     this->setWindowFlags(flags   | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
     QPalette palette = this->palette();
@@ -99,7 +99,7 @@ void launcher::find_app_icons(){
 
 const char * launcher::get_icon(std::string app){
     if(app_icons[app] == "\0")
-        return default_icon;
+        return default_icon.c_str();
 
     return app_icons[app].c_str();
 
@@ -109,7 +109,6 @@ void launcher::execute(std::string command){
     // Execution mode
     std::string command_to_execute;
     QProcess process(nullptr);
-
     command_to_execute =  command.substr(0,command.find(' ')).c_str();
 
     if(strcmp(exec_mode, "exec") ==0){
@@ -118,27 +117,32 @@ void launcher::execute(std::string command){
         process.setArguments(QStringList{
                                  "-c",
                                  command.c_str()
-                             });
+                               });
+
 
     }else if(strcmp(exec_mode, "term") ==0){
-        printf("exectuting in terminal mode");
-        printf("terminal is: %s",default_terminal);
-        process.setProgram(default_terminal);
+        process.setProgram(default_terminal.c_str());
         process.setArguments(QStringList{
                                  "-e",
-                                 command.c_str()
+                                command.c_str()
                              });
     }
 
+    if(fork()){ // child
+        process.start();
+        process.waitForFinished(-1);
+        QString err = process.readAllStandardError();
 
-    if(process.startDetached()){
-        most_used.erase(std::remove(most_used.begin(),most_used.end(), command_to_execute), most_used.end());
-        most_used.insert(most_used.begin(),command_to_execute);
-        write_most_used();
+        if(err == ""){
+            most_used.erase(std::remove(most_used.begin(),most_used.end(), command_to_execute), most_used.end());
+            most_used.insert(most_used.begin(),command_to_execute);
+            write_most_used();
+
+        }
+     }{
         this->close();
-    }else{
+       }
 
-    }
 }
 
 void launcher::keyPressEvent(QKeyEvent *event){
@@ -196,7 +200,7 @@ void launcher::keyPressEvent(QKeyEvent *event){
         if(strcmp(exec_mode,"exec")==0)
             exec_mode = "term";
         else
-            exec_mode="exec";
+            exec_mode= "exec";
 
         mode->setText(exec_mode);
         mode->setText( " " + mode->text() + ": ");
@@ -251,10 +255,14 @@ void launcher::load_config(){
     while(std::getline(file,line)){
         std::string parm = line.substr(0, line.find('='));
         std::string val = line.substr(line.find('=')+1,line.size());
-        if(parm == "background" ){
-            backgroundcolor = val;
-         }
-
+        printf("parm = %s\n\tval=%s\n",parm.c_str(),val.c_str());
+        if(configurable.find(parm) != configurable.end()){
+            std::string launcher::* varpointer =  configurable.at(parm);
+            this->*varpointer = val;
+        }
     }
+
+
     file.close();
 }
+

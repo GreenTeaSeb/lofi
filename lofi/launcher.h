@@ -22,13 +22,15 @@ class launcher : public QWidget
     QVBoxLayout *layout = new QVBoxLayout();
     QHBoxLayout *h_layout = new QHBoxLayout();
     QListWidget *list = new QListWidget(this);
+    const char* exec_mode = "exec";
 
     int max_num_of_apps = 20;
-    char* default_icon = "/usr/share/icons/Papirus/24x24/apps/bash.svg";
+    std::string default_icon = "/usr/share/icons/Papirus/24x24/apps/bash.svg";
     std::string config_location =  std::string(getenv("HOME")) + "/.config/lofi/";
-    char* exec_mode = "exec";
-    char* default_terminal = getenv("TERM");
+    std::string default_terminal = (getenv("TERM")) ? getenv("TERM") : "" ;
     std::string backgroundcolor = "#282a36";
+
+
 
     std::vector<std::string> app_locations = {"/usr/bin"};
 
@@ -40,6 +42,14 @@ class launcher : public QWidget
 
 public:
     explicit launcher(QWidget *parent = nullptr);
+
+    std::map<std::string, std::string launcher::*> configurable = {
+        {"default icon",  &launcher::default_icon},
+        {"background color",  &launcher::backgroundcolor},
+        {"default terminal",  &launcher::default_terminal},
+        {"config location",  &launcher::config_location},
+    };
+
 
 protected:
 
@@ -61,6 +71,7 @@ protected:
     const char* get_icon(std::string);
 
 
+    // configurable
 signals:
 
 };
