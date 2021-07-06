@@ -1,14 +1,13 @@
-#include <QtWidgets>
 #include "launcher.h"
+#include <QtWidgets>
 #include <iostream>
 int
-main(int argc, char *argv[])
+main(int argc, char* argv[])
 {
+  QApplication app(argc, argv);
+  launcher L;
+  L.show();
 
-    QApplication app(argc, argv);
-    launcher L;
-
-
-     L.show();
-    return app.exec();
+  return app.exec();
+  printf("should be closed!");
 }
