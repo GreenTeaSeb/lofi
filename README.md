@@ -7,7 +7,7 @@ Todo:
 - pinned applications
 
 If you use a WM, you will need to make this app launch in floating mode manually  
-
+- Sway `for_window [app_id="lofi"] floating enable`  
 
 ## content
 1. [Shortcuts](#Shortcuts)
