@@ -24,12 +24,13 @@ class launcher : public QWidget
   const char* exec_mode = "exec";
 
   int max_num_of_apps = 20;
-
+  int grid_size = 128;
   std::string default_icon = "/usr/share/icons/Papirus/24x24/apps/bash.svg";
   std::string config_location = std::string(getenv("HOME")) + "/.config/lofi/";
   std::string default_terminal = (getenv("TERM")) ? getenv("TERM") : "";
   std::string max_num = "20";
   std::string list_layout = "list";
+  std::string grid_size_stirng = "128";
 
   QString stylesheet = {};
 
@@ -48,6 +49,7 @@ public:
     { "config location", &launcher::config_location },
     { "max recents", &launcher::max_num },
     { "layout", &launcher::list_layout },
+    { "grid size", &launcher::grid_size_stirng }
   };
 
 protected:

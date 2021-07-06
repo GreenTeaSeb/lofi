@@ -25,7 +25,6 @@ launcher::launcher(QWidget* parent)
   this->setAttribute(Qt::WA_StyledBackground);
   this->resize(720, 400);
   this->setMinimumSize(720, 400);
-  this->setMaximumSize(720, 500);
 
   // loading most used
   load_most_used();
@@ -42,13 +41,14 @@ launcher::launcher(QWidget* parent)
   list->setFocusPolicy(Qt::NoFocus);
   list->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-  list->setSpacing(5);
 
   if (list_layout == "grid") {
     list->setFlow(QListView::Flow::LeftToRight);
     list->setResizeMode(QListView::Adjust);
-    list->setGridSize(QSize(128, 128));
+    list->setGridSize(QSize(grid_size, grid_size));
     list->setViewMode(QListView::IconMode);
+  } else {
+    list->setSpacing(5);
   }
 
   list_applications(app_locations[0]);
@@ -229,6 +229,7 @@ launcher::keyPressEvent(QKeyEvent* event)
       update_list(input->text().toStdString());
       break;
     }
+    case Qt::Key_Left:
     case Qt::Key_Up: {
       if (list->currentRow() == 0)
         list->setCurrentRow(list->count() - 1);
@@ -237,6 +238,7 @@ launcher::keyPressEvent(QKeyEvent* event)
 
       break;
     }
+    case Qt::Key_Right:
     case Qt::Key_Down: {
       if (list->currentRow() == list->count() - 1)
         list->setCurrentRow(0);
@@ -341,4 +343,5 @@ launcher::load_config()
 
   file.close();
   max_num_of_apps = std::stoi(max_num);
+  grid_size = std::stoi(grid_size_stirng);
 }
