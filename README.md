@@ -1,5 +1,7 @@
 # lofi
+![screenshot](https://raw.githubusercontent.com/GreenTeaSeb/lofi/senpai/screenshots/example.png)  
 An application launcher with less features and customizability!
+
 
 Todo:  
 - paths to search for executables and icons
