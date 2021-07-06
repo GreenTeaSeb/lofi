@@ -2,7 +2,6 @@
 #include <QFile>
 #include <QList>
 #include <QListWidgetItem>
-#include <QPalette>
 #include <QProcess>
 #include <QTextStream>
 #include <algorithm>
@@ -177,12 +176,15 @@ launcher::execute(std::string command)
         most_used.end());
       most_used.insert(most_used.begin(), command_to_execute);
       write_most_used();
+      process.close();
       this->close();
     }
 
   } else if (strcmp(exec_mode, "term") == 0) {
     process.setProgram(default_terminal.c_str());
-    process.setArguments(QStringList{ "-e", command.c_str() });
+    QStringList args = QString::fromStdString(command).split(" ");
+    args.prepend("-e");
+    process.setArguments(args);
 
     if (fork()) {
       process.start();

@@ -1,6 +1,6 @@
 #include "launcher.h"
 #include <QtWidgets>
-#include <iostream>
+
 int
 main(int argc, char* argv[])
 {
