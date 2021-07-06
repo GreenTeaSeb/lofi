@@ -166,42 +166,31 @@ launcher::execute(std::string command)
   command_to_execute = command.substr(0, command.find(' ')).c_str();
 
   if (strcmp(exec_mode, "exec") == 0) {
-
     process.setProgram("/bin/sh");
     process.setArguments(QStringList{ "-c", command.c_str() });
-
-    if (process.startDetached()) {
-      most_used.erase(
-        std::remove(most_used.begin(), most_used.end(), command_to_execute),
-        most_used.end());
-      most_used.insert(most_used.begin(), command_to_execute);
-      write_most_used();
-      process.close();
-      this->close();
-    }
 
   } else if (strcmp(exec_mode, "term") == 0) {
     process.setProgram(default_terminal.c_str());
     QStringList args = QString::fromStdString(command).split(" ");
     args.prepend("-e");
     process.setArguments(args);
-
-    if (fork()) {
-      process.start();
-      process.waitForFinished(-1);
-      QString err = process.readAllStandardError();
-
-      if (err == "") {
-        most_used.erase(
-          std::remove(most_used.begin(), most_used.end(), command_to_execute),
-          most_used.end());
-        most_used.insert(most_used.begin(), command_to_execute);
-        write_most_used();
-      }
-
-    } else
-      this->close();
   }
+
+  if (fork()) {
+    process.start();
+    process.waitForFinished(-1);
+    QString err = process.readAllStandardError();
+
+    if (err == "") {
+      most_used.erase(
+        std::remove(most_used.begin(), most_used.end(), command_to_execute),
+        most_used.end());
+      most_used.insert(most_used.begin(), command_to_execute);
+      write_most_used();
+    }
+
+  } else
+    this->close();
 }
 
 void
