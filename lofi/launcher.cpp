@@ -22,7 +22,7 @@ launcher::launcher(QWidget* parent)
   Qt::WindowFlags flags = this->windowFlags();
   this->setWindowFlags(flags | Qt::FramelessWindowHint |
                        Qt::WindowStaysOnTopHint);
-
+  this->setAttribute(Qt::WA_StyledBackground);
   this->resize(720, 400);
   this->setMinimumSize(720, 400);
   this->setMaximumSize(720, 500);
@@ -69,11 +69,11 @@ launcher::load_stylesheet()
                  "      background: rgb(50, 50, 50);\n"
                  "}\n\n"
 
-                 "#list{"
+                 "#list{\n"
                  "      color: white;\n"
                  "      background:transparent;\n"
                  "      border: 0px;\n"
-                 "      font-size: 20px\n"
+                 "      font-size: 20px;\n"
                  "}\n\n"
 
                  "#input{\n"
