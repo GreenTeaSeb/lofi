@@ -44,6 +44,13 @@ launcher::launcher(QWidget* parent)
   list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   list->setSpacing(5);
 
+  if (list_layout == "grid") {
+    list->setFlow(QListView::Flow::LeftToRight);
+    list->setResizeMode(QListView::Adjust);
+    list->setGridSize(QSize(128, 128));
+    list->setViewMode(QListView::IconMode);
+  }
+
   list_applications(app_locations[0]);
   find_app_icons();
   update_list("");

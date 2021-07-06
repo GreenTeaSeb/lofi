@@ -30,6 +30,8 @@ Currently config only supports
 	`default icon=[PATH TO FILE]`
 - max number of recents, defaults to 20
 	`max recents=20`
+- list layout
+      `layout=grid` sets the layout of list to a grid
 
 ## Customization
 To customize how the app launcher looks simply  edit the `style.qss` file at the config folder.
@@ -107,3 +109,5 @@ Here's an example of a customized style
 ![screenshot](https://raw.githubusercontent.com/GreenTeaSeb/lofi/senpai/screenshots/defaultstyle.png)  
 - Customized style  
 ![screenshot](https://raw.githubusercontent.com/GreenTeaSeb/lofi/senpai/screenshots/customstyle.png)
+- Config with layout=grid  
+![screenshot](https://raw.githubusercontent.com/GreenTeaSeb/lofi/senpai/screenshots/customstyle_grid.png)

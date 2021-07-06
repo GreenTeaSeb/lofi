@@ -29,16 +29,9 @@ class launcher : public QWidget
   std::string config_location = std::string(getenv("HOME")) + "/.config/lofi/";
   std::string default_terminal = (getenv("TERM")) ? getenv("TERM") : "";
   std::string max_num = "20";
+  std::string list_layout = "list";
 
   QString stylesheet = {};
-
-  /*
-
- ""
-                           "#list{color: white;  background:transparent; "
-                           "border:     0px; font-size: 20px}";
-
-*/
 
   std::vector<std::string> app_locations = { "/usr/bin" };
 
@@ -54,6 +47,7 @@ public:
     { "default terminal", &launcher::default_terminal },
     { "config location", &launcher::config_location },
     { "max recents", &launcher::max_num },
+    { "layout", &launcher::list_layout },
   };
 
 protected:
