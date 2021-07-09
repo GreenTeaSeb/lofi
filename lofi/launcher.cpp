@@ -158,39 +158,45 @@ launcher::get_icon(std::string app)
 }
 
 void
+launcher::exit()
+{
+  this->close();
+};
+
+void
 launcher::execute(std::string command)
 {
-  // Execution mode
-  std::string command_to_execute;
+
   QProcess process(nullptr);
-  command_to_execute = command.substr(0, command.find(' ')).c_str();
+  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+
+  QStringList command_list = QString::fromStdString(command).split(" ");
+  QStringList arguments(command_list);
+  arguments.removeFirst();
+  // Execution mode
 
   if (strcmp(exec_mode, "exec") == 0) {
-    process.setProgram("/bin/sh");
-    process.setArguments(QStringList{ "-c", command.c_str() });
+    process.setProgram(command_list.at(0));
+    process.setArguments(arguments);
+  }
 
-  } else if (strcmp(exec_mode, "term") == 0) {
+  else if (strcmp(exec_mode, "term") == 0) {
     process.setProgram(default_terminal.c_str());
-    QStringList args = QString::fromStdString(command).split(" ");
+    QStringList args = command_list;
     args.prepend("-e");
     process.setArguments(args);
   }
 
-  if (fork()) {
-    process.start();
-    process.waitForFinished(-1);
-    QString err = process.readAllStandardError();
-
-    if (err == "") {
-      most_used.erase(
-        std::remove(most_used.begin(), most_used.end(), command_to_execute),
-        most_used.end());
-      most_used.insert(most_used.begin(), command_to_execute);
-      write_most_used();
-    }
-
-  } else
+  process.setProcessEnvironment(env);
+  if (process.startDetached()) {
+    most_used.erase(std::remove(most_used.begin(),
+                                most_used.end(),
+                                command_list.at(0).toStdString()),
+                    most_used.end());
+    most_used.insert(most_used.begin(), command_list.at(0).toStdString());
+    write_most_used();
     this->close();
+  }
 }
 
 void

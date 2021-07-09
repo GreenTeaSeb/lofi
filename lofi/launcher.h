@@ -67,6 +67,8 @@ protected:
   void load_config();
   void load_stylesheet();
 
+  void exit();
+
   void execute(std::string command);
 
   const char* get_icon(std::string);
