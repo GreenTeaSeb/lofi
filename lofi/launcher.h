@@ -25,7 +25,7 @@ class launcher : public QWidget
 
   int max_num_of_apps = 20;
   int grid_size = 128;
-  std::string default_icon = "/usr/share/icons/Papirus/24x24/apps/bash.svg";
+  std::string default_icon = "";
   std::string config_location = std::string(getenv("HOME")) + "/.config/lofi/";
   std::string default_terminal = (getenv("TERM")) ? getenv("TERM") : "";
   std::string max_num = "20";
@@ -38,15 +38,15 @@ class launcher : public QWidget
 
   std::unordered_set<std::string> app_list;
   std::vector<std::string> most_used;
-  std::map<std::string, std::string> app_icons;
+  std::vector<std::string> pinned;
 
 public:
+  bool app_launcher = false;
   explicit launcher(QWidget* parent = nullptr);
 
   std::map<std::string, std::string launcher::*> configurable = {
     { "default icon", &launcher::default_icon },
     { "default terminal", &launcher::default_terminal },
-    { "config location", &launcher::config_location },
     { "max recents", &launcher::max_num },
     { "layout", &launcher::list_layout },
     { "grid size", &launcher::grid_size_stirng }
@@ -55,11 +55,10 @@ public:
 protected:
   void keyPressEvent(QKeyEvent* event) override;
 
-  void list_applications(std::string path);
+  void list_applications();
 
+  void initalize_list();
   void update_list(std::string search_word);
-
-  void find_app_icons();
 
   void write_most_used();
 
@@ -70,8 +69,10 @@ protected:
   void exit();
 
   void execute(std::string command);
+  void parse_arguements();
 
-  const char* get_icon(std::string);
+  std::string to_upper(std::string input);
+  QIcon get_icon(std::string);
 
   // configurable
 signals:

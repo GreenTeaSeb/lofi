@@ -30,15 +30,17 @@ The default location for the config file is in the home folder at `.config/lofi/
 Currently config only supports
 
 - default terminal for terminal execution, default value needs the HOME env to be set.
-	`default terminal=alacritty`
+	`default terminal = alacritty`
 - default icon for when an icon is not found
-	`default icon=[PATH TO FILE]`
+	`default icon = [PATH TO FILE]`
 - max number of recents, defaults to 20
-	`max recents=20`
+	`max recents = 20`
 - list layout to set the type of list you want
-      `layout=grid` sets the layout of list to a grid
+      `layout = grid` sets the layout of list to a grid
 - grid size , if the layout is set to the grid, this will control how big the icons are, bigger number = bigger icons , defaults to 128
-      `grid size=128`  
+      `grid size = 128`   
+- check locations, paths to check for files, by default it's only "/usr/bin"  
+      `check locations = /usr/bin , /home/seb/.local`  
 NOTE: this is seperate from the stylesheet and if the stylesheet icon-size is too big, it will clip through other icons, this is why you set this   
 
 
