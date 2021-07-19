@@ -4,12 +4,14 @@ An application launcher made with Qt with less features and customizability!
 
 
 Todo:  
-- paths to search for executables and icons
-- better search
 - pinned applications
 
 If you use a WM, you will need to make this app launch in floating mode manually  
 - Sway `for_window [app_id="lofi"] floating enable`  
+
+## Modes
+Term: whatever you type in will be launched in your default terminal  
+Exec: Launched the process directly, anything after the name of the application will be used as arguements, so be careful of spaces.
 
 ## content
 1. [Shortcuts](#Shortcuts)
@@ -23,6 +25,7 @@ If you use a WM, you will need to make this app launch in floating mode manually
 - del : delete selected recent app from list  
 - enter : run selected app in list or if nothing is selected, the command in the input bar
 - esc : exit launcher  
+- ctrl+r : reload the cache and program
 
 ## Config
 
@@ -37,7 +40,7 @@ Currently config only supports
 	`max recents = 20`
 - list layout to set the type of list you want
       `layout = grid` sets the layout of list to a grid
-- grid size , if the layout is set to the grid, this will control how big the icons are, bigger number = bigger icons , defaults to 128
+- grid size , if the layout is set to the grid, this will control how big the grid is, defaults to 128
       `grid size = 128`   
       NOTE: this is seperate from the stylesheet and if the stylesheet icon-size is too big, it will clip through other icons, this is why you set this   
 
@@ -81,42 +84,42 @@ Here is the default style:
 
 Here's an example of a customized style  
 
-    #main{
-          background: transparent;
-          border-image:url(/home/seb/Pictures/backgrounds/back.png) 0 0 0 0 stretch stretch;
-          border-radius: 20px;
-          
-    }     
-    
-    
-    #list{      
-          color: white;
-          background:rgba(0, 0, 0, 100);
-          border-radius: 10px;
-          padding: 10px;
-          font-size: 20px;
-          font-display: none;
-          icon-size: 30px;
-    }
-    
-    
-    #list::item{
-          selection-background-color: rgba(0, 0, 0, 0.253) ;  
-          selection-color: rgb(255, 255, 255);
-              
-    }
-    
-    #list::item:selected{
-          font-size: large;
-    }
-    
-    #input, #mode{
-          color: white;
-          background:rgba(0, 0, 0, 100);
-          border-radius: 10px;
-          padding: 10px;
-          font-size: 20px;
-    }
+      #main{
+            background: transparent;
+            border-image:url(/home/seb/Pictures/backgrounds/back.png) 0 0 0 0 stretch stretch;
+            border-radius: 20px;
+            
+      }     
+      
+      
+      #list{      
+            color: white;
+            background:rgba(0, 0, 0, 100);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 20px;
+            font-display: none;
+            icon-size: 30px;
+      }
+      
+      
+      #list::item{
+            selection-background-color: rgba(0, 0, 0, 0.253) ;  
+            selection-color: rgb(255, 255, 255);
+                  
+      }
+      
+      #list::item:selected{
+            font-size: large;
+      }
+      
+      #input, #mode{
+            color: white;
+            background:rgba(0, 0, 0, 100);
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 20px;
+      }
 
 ## Screenshots
 - Default theme  

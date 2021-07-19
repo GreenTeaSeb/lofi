@@ -9,8 +9,6 @@
 #include <QWidget>
 #include <map>
 #include <stdlib.h>
-#include <unordered_set>
-#include <vector>
 
 class launcher : public QWidget
 {
@@ -21,10 +19,12 @@ class launcher : public QWidget
   QVBoxLayout* layout = new QVBoxLayout();
   QHBoxLayout* h_layout = new QHBoxLayout();
   QListWidget* list = new QListWidget(this);
+
   const char* exec_mode = "exec";
 
   int max_num_of_apps = 20;
   int grid_size = 128;
+
   std::string default_icon = "";
   std::string config_location = std::string(getenv("HOME")) + "/.config/lofi/";
   std::string default_terminal = (getenv("TERM")) ? getenv("TERM") : "";
@@ -36,9 +36,8 @@ class launcher : public QWidget
 
   std::vector<std::string> app_locations = { "/usr/bin" };
 
-  std::unordered_set<std::string> app_list;
-  std::vector<std::string> most_used;
-  std::vector<std::string> pinned;
+  QStringList app_list;
+  QStringList most_used;
 
 public:
   bool app_launcher = false;
@@ -56,6 +55,7 @@ protected:
   void keyPressEvent(QKeyEvent* event) override;
 
   void list_applications();
+  void load_list();
 
   void initalize_list();
   void update_list(std::string search_word);
@@ -68,7 +68,7 @@ protected:
 
   void exit();
 
-  void execute(std::string command);
+  void execute();
   void parse_arguements();
 
   std::string to_upper(std::string input);

@@ -1,14 +1,11 @@
-#include "launcher.h"
+﻿#include "launcher.h"
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDirIterator>
 #include <QFile>
-#include <QList>
 #include <QListWidgetItem>
 #include <QProcess>
 #include <QTextStream>
-#include <algorithm>
-#include <fstream>
 #include <iostream>
 #include <stdio.h>
 
@@ -39,7 +36,9 @@ launcher::launcher(QWidget* parent)
   list->setFocusPolicy(Qt::NoFocus);
   list->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
+  list->setLayoutMode(QListWidget::Batched);
+  list->setBatchSize(50);
+  list->setUniformItemSizes(true);
   if (list_layout == "grid") {
     list->setFlow(QListView::Flow::LeftToRight);
     list->setResizeMode(QListView::Adjust);
@@ -59,10 +58,10 @@ launcher::launcher(QWidget* parent)
   } else {
     std::string line;
     while (std::getline(std::cin, line)) {
-      app_list.insert(line);
+      app_list.push_back(QString::fromStdString(line));
     }
   }
-  update_list("");
+  load_list();
 
   // adding everything
   h_layout->addWidget(mode, 0);
@@ -129,32 +128,63 @@ launcher::load_stylesheet()
 void
 launcher::update_list(std::string search_word)
 {
-
   list->clear();
+  if (search_word == "")
+    for (auto& key : most_used) {
+      if (list->count() < max_num_of_apps) {
+        QFileInfo file(key);
+        QListWidgetItem* item = new QListWidgetItem(
+          get_icon(file.baseName().toStdString()), file.baseName());
+        item->setData(Qt::UserRole, file.absoluteFilePath());
+        if (list_layout == "grid")
+          item->setSizeHint(list->sizeHint());
+        list->addItem(item);
+      }
+    }
 
-  for (const auto& key : most_used) {
-    if (to_upper(key).find(to_upper(search_word)) != std::string::npos &&
-        list->count() < max_num_of_apps) {
-      list->addItem(
-        new QListWidgetItem(get_icon(key), QString::fromStdString(key)));
+  QStringList shorter_list =
+    app_list.filter(QString::fromStdString(search_word), Qt::CaseInsensitive);
+  for (auto& i : shorter_list) {
+    if (list->count() > max_num_of_apps)
+      break;
+    QFileInfo file(i);
+    if (file.baseName().contains(QString::fromStdString(search_word)) &&
+        list->findItems(file.baseName(), Qt::MatchExactly).length() < 1) {
+      QListWidgetItem* item = new QListWidgetItem(
+        get_icon(file.baseName().toStdString()), file.baseName());
+      item->setData(Qt::UserRole, file.absoluteFilePath());
+      if (list_layout == "grid")
+        item->setSizeHint(list->sizeHint());
+      list->addItem(item);
+    }
+  }
+}
 
-      app_list.erase(key);
+void
+launcher::load_list()
+{
+  app_list.removeDuplicates();
+  for (auto& key : most_used) {
+    if (list->count() < max_num_of_apps) {
+      QFileInfo file(key);
+      QListWidgetItem* item = new QListWidgetItem(
+        get_icon(file.baseName().toStdString()), file.baseName());
+      item->setData(Qt::UserRole, file.absoluteFilePath());
+      if (list_layout == "grid")
+        item->setSizeHint(list->sizeHint());
+      list->addItem(item);
     }
   }
 
   for (auto& i : app_list) {
-    if (to_upper(i).find(to_upper(search_word)) != std::string::npos &&
-        list->count() < max_num_of_apps) {
-      list->addItem(
-        new QListWidgetItem(QIcon(get_icon(i)), QString::fromStdString(i)));
-
-      // IN CASE I WANT TO SWITCH SO THAT IT EXECUTES THE FILE PATH INSTEAD OF
-      // USING PROCESS NAME
-      //      QListWidgetItem* item = new QListWidgetItem;
-      //      QFileInfo file(QString::fromStdString(i));
-      //      item->setIcon(get_icon(file.baseName().toStdString()));
-      //      item->setText(file.baseName());
-      //      item->setData(Qt::UserRole, file.absolutePath());
+    if (list->count() < max_num_of_apps) {
+      QFileInfo file(i);
+      QListWidgetItem* item = new QListWidgetItem(
+        get_icon(file.baseName().toStdString()), file.baseName());
+      item->setData(Qt::UserRole, file.absoluteFilePath());
+      if (list_layout == "grid")
+        item->setSizeHint(list->sizeHint());
+      list->addItem(item);
     }
   }
 }
@@ -170,18 +200,18 @@ launcher::list_applications()
       QString line;
       while (stream.readLineInto(&line)) {
         if (line != "")
-          app_list.insert(line.toStdString());
+          app_list.push_back(line);
       }
     } else {
       for (auto& path : app_locations) {
         QDirIterator it(QString::fromStdString(path),
                         QDir::Files | QDir::Executable | QDir::NoDot |
-                          QDir::NoDotAndDotDot | QDir::NoDotDot,
+                          QDir::NoDotAndDotDot,
                         QDirIterator::Subdirectories);
         while (it.hasNext()) {
           it.next();
-          stream << it.fileInfo().baseName() << '\n';
-          app_list.insert(it.fileInfo().baseName().toStdString());
+          stream << it.fileInfo().absoluteFilePath() << '\n';
+          app_list.push_back(it.fileInfo().absoluteFilePath());
         }
       }
     }
@@ -210,12 +240,27 @@ launcher::exit()
 };
 
 void
-launcher::execute(std::string command)
+launcher::execute()
 {
   if (app_launcher) {
     QProcess process(nullptr);
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    std::string command = {};
+    if (list->currentRow() < 0) { // If no suggestion is selected
+      command = input->text().toStdString();
+      if (strcmp(exec_mode, "exec") == 0) {
+        for (auto& i : app_list.filter(QString::fromStdString(command),
+                                       Qt::CaseInsensitive)) {
+          QFileInfo file(i);
+          if (file.baseName() == QString::fromStdString(command))
+            command = file.absoluteFilePath().toStdString();
+        }
+      }
 
+    } else { // if suggestion is selected
+      command =
+        list->currentItem()->data(Qt::UserRole).toString().toStdString();
+    }
     QStringList command_list = QString::fromStdString(command).split(" ");
     QStringList arguments(command_list);
     arguments.removeFirst();
@@ -234,17 +279,27 @@ launcher::execute(std::string command)
     }
 
     process.setProcessEnvironment(env);
+
     if (process.startDetached()) {
-      most_used.erase(std::remove(most_used.begin(),
-                                  most_used.end(),
-                                  command_list.at(0).toStdString()),
-                      most_used.end());
-      most_used.insert(most_used.begin(), command_list.at(0).toStdString());
+      QString base_name = QFileInfo(command_list.at(0)).baseName();
+      most_used.removeAll(base_name);
+      most_used.removeAll(command_list.at(0));
+
+      for (auto& line : most_used) {
+        QFileInfo info(line);
+        if (info.baseName() == base_name) {
+          most_used.removeAll(info.absoluteFilePath());
+        }
+      }
+
+      most_used.insert(most_used.begin(), command_list.at(0));
+
       write_most_used();
       exit();
     }
+
   } else {
-    std::cout << command;
+    std::cout << input->text().toStdString();
     exit();
   }
 }
@@ -255,16 +310,9 @@ launcher::keyPressEvent(QKeyEvent* event)
   if (event->modifiers() != Qt::ControlModifier)
     switch (event->key()) {
       case Qt::Key_Return: { // EXECUTE BASH
-        std::string command_to_execute;
-        if (list->currentRow() < 0) { // If no suggestion is selected
-          command_to_execute = input->text().toStdString();
-        } else { // if suggestion is selected
-          command_to_execute = list->currentItem()->text().toStdString();
-        }
 
-        // execution
         try {
-          execute(command_to_execute);
+          execute();
         } catch (std::exception e) {
           printf("%s", e.what());
         }
@@ -320,10 +368,9 @@ launcher::keyPressEvent(QKeyEvent* event)
       case Qt::Key_Delete: {
         if (list->count() > 0) {
           if (list->currentRow() >= 0) {
-            std::string to_delete = list->currentItem()->text().toStdString();
-            most_used.erase(
-              std::remove(most_used.begin(), most_used.end(), to_delete),
-              most_used.end());
+            QString to_delete =
+              list->currentItem()->data(Qt::UserRole).toString();
+            most_used.removeAll(to_delete);
 
             update_list(input->text().toStdString().substr(
               0, input->text().toStdString().find(' ')));
@@ -348,7 +395,7 @@ launcher::keyPressEvent(QKeyEvent* event)
         app_list.clear();
         load_config();
         list_applications();
-        update_list("");
+        load_list();
         break;
       }
 
@@ -364,9 +411,9 @@ launcher::write_most_used()
   QFile data(QString::fromStdString(config_location + "recents.conf"));
   if (data.open(QIODevice::WriteOnly)) {
     QTextStream out(&data);
-    for (const auto& key : most_used) {
-      out << key.c_str();
-      out << "\n";
+    for (auto& key : most_used) {
+      if (key != "")
+        out << key << '\n';
     }
     data.close();
   }
@@ -382,7 +429,7 @@ launcher::load_most_used()
     QString line;
     while (in.readLineInto(&line)) {
       if (line != "")
-        most_used.push_back(line.toStdString());
+        most_used.push_back(line);
     }
     data.close();
   }
