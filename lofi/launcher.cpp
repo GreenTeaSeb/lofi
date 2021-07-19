@@ -144,9 +144,18 @@ launcher::update_list(std::string search_word)
 
   for (auto& i : app_list) {
     if (to_upper(i).find(to_upper(search_word)) != std::string::npos &&
-        list->count() < max_num_of_apps)
+        list->count() < max_num_of_apps) {
       list->addItem(
         new QListWidgetItem(QIcon(get_icon(i)), QString::fromStdString(i)));
+
+      // IN CASE I WANT TO SWITCH SO THAT IT EXECUTES THE FILE PATH INSTEAD OF
+      // USING PROCESS NAME
+      //      QListWidgetItem* item = new QListWidgetItem;
+      //      QFileInfo file(QString::fromStdString(i));
+      //      item->setIcon(get_icon(file.baseName().toStdString()));
+      //      item->setText(file.baseName());
+      //      item->setData(Qt::UserRole, file.absolutePath());
+    }
   }
 }
 
@@ -186,8 +195,12 @@ launcher::get_icon(std::string app)
   QString name = QString::fromStdString(app);
   if (QIcon::hasThemeIcon(name))
     return QIcon::fromTheme(name);
-  else
+  else if (default_icon == "")
     return QIcon::fromTheme("application-x-executable");
+  else {
+    QIcon icon(QString::fromStdString(default_icon));
+    return icon;
+  }
 }
 
 void
@@ -228,11 +241,11 @@ launcher::execute(std::string command)
                       most_used.end());
       most_used.insert(most_used.begin(), command_list.at(0).toStdString());
       write_most_used();
-      this->close();
+      exit();
     }
   } else {
     std::cout << command;
-    this->close();
+    exit();
   }
 }
 
@@ -282,7 +295,7 @@ launcher::keyPressEvent(QKeyEvent* event)
       }
       case Qt::Key_Escape: {
         // list->setCurrentRow(-1);
-        this->close();
+        exit();
         break;
       }
       case Qt::Key_Tab: {
