@@ -39,9 +39,11 @@ Currently config only supports
       `layout = grid` sets the layout of list to a grid
 - grid size , if the layout is set to the grid, this will control how big the icons are, bigger number = bigger icons , defaults to 128
       `grid size = 128`   
+      NOTE: this is seperate from the stylesheet and if the stylesheet icon-size is too big, it will clip through other icons, this is why you set this   
+
 - check locations, paths to check for files, by default it's only "/usr/bin"  
       `check locations = /usr/bin , /home/seb/.local`  
-NOTE: this is seperate from the stylesheet and if the stylesheet icon-size is too big, it will clip through other icons, this is why you set this   
+      Adding more locations will cause a bigger cache to be created and slower perfomance when searching depending on the amount of files in the location
 
 
 
