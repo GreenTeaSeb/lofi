@@ -290,8 +290,8 @@ launcher::execute()
     process.setProcessEnvironment(env);
 
     if (process.startDetached()) {
+      most_used.removeAll(list->currentItem()->data(PATH_ROLE).toString());
       most_used.push_front(list->currentItem()->data(PATH_ROLE).toString());
-      most_used.removeDuplicates();
       write_most_used();
       exit();
     }
@@ -322,8 +322,17 @@ launcher::keyPressEvent(QKeyEvent* event)
         update_list(input->text().toStdString());
         break;
       }
-      case Qt::Key_Left:
       case Qt::Key_Up: {
+        int step = list->size().width() / list->gridSize().width();
+        if (list->currentRow() == -1)
+          list->setCurrentRow(list->count() - 1);
+        else if (list->currentRow() == list->count() - step - 1)
+          list->setCurrentRow(0);
+        else
+          list->setCurrentRow(list->currentRow() - step);
+        break;
+      }
+      case Qt::Key_Left: {
         if (list->currentRow() == 0)
           list->setCurrentRow(list->count() - 1);
         else
@@ -331,8 +340,17 @@ launcher::keyPressEvent(QKeyEvent* event)
 
         break;
       }
-      case Qt::Key_Right:
       case Qt::Key_Down: {
+        int step = list->size().width() / list->gridSize().width();
+        if (list->currentRow() == -1)
+          list->setCurrentRow(0);
+        else if (list->currentRow() == list->count() - step - 1)
+          list->setCurrentRow(0);
+        else
+          list->setCurrentRow(list->currentRow() + step);
+        break;
+      }
+      case Qt::Key_Right: {
         if (list->currentRow() == list->count() - 1)
           list->setCurrentRow(0);
         else
