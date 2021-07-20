@@ -54,7 +54,6 @@ launcher::launcher(QWidget* parent)
 
   if (app_launcher) {
     load_most_used();
-
     list_applications();
 
   } else {
@@ -184,15 +183,21 @@ void
 launcher::load_list()
 {
   app_list.removeDuplicates();
-  for (auto& key : most_used) {
-    if (list->count() < max_num_of_apps) {
-      add_item(key, "");
+  if (app_launcher) {
+    for (auto& key : most_used) {
+      if (list->count() < max_num_of_apps) {
+        add_item(key, "");
+      }
     }
-  }
 
-  for (auto& i : QStringList(app_list)) {
-    if (list->count() < max_num_of_apps) {
-      add_item(i, "");
+    for (auto& i : app_list) {
+      if (list->count() < max_num_of_apps) {
+        add_item(i, "");
+      }
+    }
+  } else {
+    for (auto& i : app_list) {
+      list->addItem(new QListWidgetItem(QIcon(get_icon(i.toStdString())), i));
     }
   }
 }
@@ -297,7 +302,12 @@ launcher::execute()
     }
 
   } else {
-    std::cout << input->text().toStdString();
+    if (list->currentRow() < 0) { // If no suggestion is selected
+      std::cout << input->text().toStdString();
+    } else { // if suggestion is selected
+      std::cout << list->currentItem()->text().toStdString();
+    }
+
     exit();
   }
 }
