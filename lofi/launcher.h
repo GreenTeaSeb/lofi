@@ -34,10 +34,18 @@ class launcher : public QWidget
 
   QString stylesheet = {};
 
-  std::vector<std::string> app_locations = { "/usr/bin" };
+  std::vector<std::string> app_locations = { "/usr/share/applications" };
 
   QStringList app_list;
   QStringList most_used;
+
+  // .desktop data
+  static constexpr int NAME_ROLE = Qt::UserRole + 0;
+  static constexpr int EXEC_ROLE = Qt::UserRole + 1;
+  static constexpr int ICON_ROLE = Qt::UserRole + 2;
+  static constexpr int SEARCHABLE_ROLE = Qt::UserRole + 3;
+  static constexpr int TYPE_ROLE = Qt::UserRole + 4;
+  static constexpr int PATH_ROLE = Qt::UserRole + 5;
 
 public:
   bool app_launcher = false;
@@ -56,7 +64,7 @@ protected:
 
   void list_applications();
   void load_list();
-
+  void add_item(QString path, QString search_word);
   void initalize_list();
   void update_list(std::string search_word);
 

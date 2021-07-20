@@ -1,5 +1,4 @@
 #include "launcher.h"
-#include <QDebug>
 #include <QtWidgets>
 int
 main(int argc, char* argv[])
