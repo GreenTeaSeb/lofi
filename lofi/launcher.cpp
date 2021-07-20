@@ -1,11 +1,9 @@
 ﻿#include "launcher.h"
 #include <QApplication>
 #include <QCommandLineParser>
-#include <QDebug>
 #include <QDirIterator>
 #include <QFile>
 #include <QListWidgetItem>
-#include <QMimeDatabase>
 #include <QProcess>
 #include <QSettings>
 #include <QTextStream>
@@ -214,7 +212,6 @@ launcher::list_applications()
       }
     } else {
       for (auto& path : app_locations) {
-        qDebug() << QString::fromStdString(path);
         if (path != "") {
           QDirIterator it(QString::fromStdString(path),
                           QDir::Files | QDir::NoDot | QDir::NoDotAndDotDot,
