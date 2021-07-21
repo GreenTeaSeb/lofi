@@ -13,6 +13,9 @@ If you use a WM, you will need to make this app launch in floating mode manually
 Term: whatever you type in will be launched in your default terminal  
 Exec: Launched the process directly, anything after the name of the application will be used as arguements, so be careful of spaces.
 
+## Usage
+launch with flag -r to use it as a file/app launcher, without the flag it will display options from stdin and output them to stdout  
+
 ## content
 1. [Shortcuts](#Shortcuts)
 2. [Config](#Config)

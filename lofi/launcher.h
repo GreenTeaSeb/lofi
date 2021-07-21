@@ -1,4 +1,4 @@
-#ifndef LAUNCHER_H
+﻿#ifndef LAUNCHER_H
 #define LAUNCHER_H
 
 #include <QHBoxLayout>
@@ -20,7 +20,13 @@ class launcher : public QWidget
   QHBoxLayout* h_layout = new QHBoxLayout();
   QListWidget* list = new QListWidget(this);
 
-  const char* exec_mode = "exec";
+  enum class modes
+  {
+    exec,
+    term,
+    file
+  };
+  modes exec_mode = modes::exec;
 
   int max_num_of_apps = 20;
   int grid_size = 128;
@@ -32,6 +38,7 @@ class launcher : public QWidget
   std::string list_layout = "list";
   std::string grid_size_stirng = "128";
 
+  QString dir_path = {};
   QString stylesheet = {};
 
   std::vector<std::string> app_locations = { "/usr/share/applications" };
@@ -64,9 +71,13 @@ protected:
 
   void list_applications();
   void load_list();
+  void update_list(std::string search_word);
+
+  void list_files(QString path, QString search_word);
+
   void add_item(QString path, QString search_word);
   void initalize_list();
-  void update_list(std::string search_word);
+  void set_exec_mode();
 
   void write_most_used();
 
@@ -79,8 +90,7 @@ protected:
   void execute();
   void parse_arguements();
 
-  std::string to_upper(std::string input);
-  QIcon get_icon(std::string);
+  QIcon get_icon(QString name);
 
   // configurable
 signals:

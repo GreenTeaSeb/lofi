@@ -1,9 +1,11 @@
-﻿#include "launcher.h"
+#include "launcher.h"
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QDesktopServices>
 #include <QDirIterator>
 #include <QFile>
 #include <QListWidgetItem>
+#include <QMimeDatabase>
 #include <QProcess>
 #include <QSettings>
 #include <QTextStream>
@@ -29,8 +31,7 @@ launcher::launcher(QWidget* parent)
   input->setObjectName("input");
   mode->setObjectName("mode");
 
-  mode->setText(exec_mode);
-  mode->setText(" " + mode->text() + ": ");
+  set_exec_mode();
 
   // list for all available apps
   list->setObjectName("list");
@@ -151,7 +152,7 @@ launcher::add_item(QString path, QString search_term)
       item->setData(TYPE_ROLE, type);
       item->setData(PATH_ROLE, path);
 
-      item->setIcon(get_icon(icon.toStdString()));
+      item->setIcon(get_icon(icon));
       item->setText(name);
       if (list_layout == "grid")
         item->setSizeHint(list->sizeHint());
@@ -166,17 +167,20 @@ void
 launcher::update_list(std::string search_word)
 {
   list->clear();
-  for (auto& key : most_used) {
-    if (list->count() < max_num_of_apps) {
-      add_item(key, QString::fromStdString(search_word));
+  if (exec_mode != modes::file) {
+    for (auto& key : most_used) {
+      if (list->count() < max_num_of_apps) {
+        add_item(key, QString::fromStdString(search_word));
+      }
     }
-  }
 
-  for (auto& i : QStringList(app_list)) {
-    if (list->count() < max_num_of_apps) {
-      add_item(i, QString::fromStdString(search_word));
+    for (auto& i : QStringList(app_list)) {
+      if (list->count() < max_num_of_apps) {
+        add_item(i, QString::fromStdString(search_word));
+      }
     }
-  }
+  } else
+    list_files(dir_path, QString::fromStdString(search_word));
 }
 
 void
@@ -197,7 +201,7 @@ launcher::load_list()
     }
   } else {
     for (auto& i : app_list) {
-      list->addItem(new QListWidgetItem(QIcon(get_icon(i.toStdString())), i));
+      list->addItem(new QListWidgetItem(QIcon(get_icon(i)), i));
     }
   }
 }
@@ -234,19 +238,26 @@ launcher::list_applications()
 }
 
 QIcon
-launcher::get_icon(std::string app)
+launcher::get_icon(QString name)
 {
-  QString name = QString::fromStdString(app);
-
-  if (QIcon::hasThemeIcon(name))
-    return QIcon::fromTheme(name);
-  else if (QFile(name).exists())
-    return QIcon(name);
-  else if (default_icon == "" &&
-           QIcon::hasThemeIcon("application-x-executable"))
-    return QIcon::fromTheme("application-x-executable");
-  else
-    return QIcon(QString::fromStdString(default_icon));
+  if (exec_mode != modes::file) {
+    if (QIcon::hasThemeIcon(name))
+      return QIcon::fromTheme(name);
+    else if (QFile(name).exists())
+      return QIcon(name);
+    else if (default_icon == "")
+      return QIcon::fromTheme("application-x-executable");
+    else
+      return QIcon(QString::fromStdString(default_icon));
+  } else {
+    QString icon_name = QMimeDatabase().mimeTypeForFile(name).genericIconName();
+    if (icon_name == "image-x-generic")
+      return QIcon(name);
+    else if (QIcon::hasThemeIcon(icon_name))
+      return QIcon::fromTheme(icon_name);
+    else
+      return QIcon::fromTheme("text-x-generic");
+  }
 }
 
 void
@@ -259,46 +270,64 @@ void
 launcher::execute()
 {
   if (app_launcher) {
-    QProcess process(nullptr);
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    if (exec_mode != modes::file) {
+      QProcess process(nullptr);
+      QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 
-    QString command = {};
-    if (list->currentRow() < 0) { // If no suggestion is selected
-      command = input->text();
-      for (auto& item : list->findItems(input->text(), Qt::MatchExactly)) {
-        command = item->data(EXEC_ROLE).toString();
+      QString command = {};
+      if (list->currentRow() < 0) { // If no suggestion is selected
+        command = input->text();
+        for (auto& item : list->findItems(input->text(), Qt::MatchExactly)) {
+          command = item->data(EXEC_ROLE).toString();
+        }
+      } else { // if suggestion is selected
+        command = list->currentItem()->data(EXEC_ROLE).toString();
       }
-    } else { // if suggestion is selected
-      command = list->currentItem()->data(EXEC_ROLE).toString();
-    }
 
-    // arguements
-    QStringList command_list = command.split(" ");
-    QStringList arguments(command_list);
-    arguments.removeFirst();
-    if (!arguments.isEmpty() && arguments.last().contains('%'))
-      arguments.pop_back();
+      // arguements
+      QStringList command_list = command.split(" ");
+      QStringList arguments(command_list);
+      arguments.removeFirst();
+      if (!arguments.isEmpty() && arguments.last().contains('%'))
+        arguments.pop_back();
 
-    // Execution mode
-    if (strcmp(exec_mode, "exec") == 0) {
-      process.setProgram(command_list.at(0));
-      process.setArguments(arguments);
-    }
+      // Execution mode
+      switch (exec_mode) {
+        case modes::exec: {
+          process.setProgram(command_list.at(0));
+          process.setArguments(arguments);
+        }
+        case modes::term: {
+          process.setProgram(default_terminal.c_str());
+          QStringList args = command_list;
+          args.prepend("-e");
+          process.setArguments(args);
+        }
+        default: {
+          break;
+        }
+      }
 
-    else if (strcmp(exec_mode, "term") == 0) {
-      process.setProgram(default_terminal.c_str());
-      QStringList args = command_list;
-      args.prepend("-e");
-      process.setArguments(args);
-    }
+      process.setProcessEnvironment(env);
 
-    process.setProcessEnvironment(env);
-
-    if (process.startDetached()) {
-      most_used.removeAll(list->currentItem()->data(PATH_ROLE).toString());
-      most_used.push_front(list->currentItem()->data(PATH_ROLE).toString());
-      write_most_used();
-      exit();
+      if (process.startDetached()) {
+        most_used.removeAll(list->currentItem()->data(PATH_ROLE).toString());
+        most_used.push_front(list->currentItem()->data(PATH_ROLE).toString());
+        write_most_used();
+        exit();
+      }
+    } else if (list->currentRow() >= 0) {
+      QString type =
+        QMimeDatabase()
+          .mimeTypeForFile(list->currentItem()->data(PATH_ROLE).toString())
+          .genericIconName();
+      if (type == "folder")
+        list_files(list->currentItem()->data(PATH_ROLE).toString(), "");
+      else {
+        QDesktopServices::openUrl(
+          QUrl::fromLocalFile(list->currentItem()->data(PATH_ROLE).toString()));
+        exit();
+      }
     }
 
   } else {
@@ -382,13 +411,8 @@ launcher::keyPressEvent(QKeyEvent* event)
         break;
       }
       case Qt::Key_Alt: {
-        if (strcmp(exec_mode, "exec") == 0)
-          exec_mode = "term";
-        else
-          exec_mode = "exec";
-
-        mode->setText(exec_mode);
-        mode->setText(" " + mode->text() + ": ");
+        exec_mode = static_cast<modes>((static_cast<int>(exec_mode) + 1) % 3);
+        set_exec_mode();
         break;
       }
       case Qt::Key_Delete: {
@@ -490,10 +514,51 @@ launcher::load_config()
   }
 }
 
-std::string
-launcher::to_upper(std::string input)
+void
+launcher::set_exec_mode()
 {
-  std::string out = input;
-  std::transform(out.begin(), out.end(), out.begin(), ::toupper);
-  return out;
+  switch (exec_mode) {
+    case modes::exec: {
+      update_list("");
+      mode->setText(QString(" exec") + ": ");
+      break;
+    }
+    case modes::term: {
+      update_list("");
+      mode->setText(QString(" term") + ": ");
+      break;
+    }
+    case modes::file: {
+      mode->setText(QString(" file") + ": ");
+      list_files(getenv("HOME"), "");
+      break;
+    }
+    default: {
+      break;
+    }
+  };
+}
+
+void
+launcher::list_files(QString path, QString search_word)
+{
+
+  dir_path = path;
+
+  QDir dir(path);
+  dir.setSorting(QDir::Type);
+  QList files = dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDot);
+  list->clear();
+  for (auto& file : files) {
+    if (file.contains(search_word, Qt::CaseInsensitive)) {
+      QListWidgetItem* item = new QListWidgetItem();
+      QFileInfo fileinfo(dir, file);
+      item->setText(file);
+      item->setIcon(get_icon(fileinfo.absoluteFilePath()));
+      item->setData(PATH_ROLE, fileinfo.absoluteFilePath());
+      if (list_layout == "grid")
+        item->setSizeHint(list->sizeHint());
+      list->addItem(item);
+    }
+  }
 }
