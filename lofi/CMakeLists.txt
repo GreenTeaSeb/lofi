@@ -12,6 +12,7 @@ find_package(Qt5Widgets)
 add_executable(lofi
     main.cpp
     launcher.h launcher.cpp
+    ini_parser.h ini_parser.cpp
     )
 
 target_link_libraries(lofi Qt5::Widgets)

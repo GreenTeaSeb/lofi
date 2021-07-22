@@ -1,4 +1,5 @@
 #include "launcher.h"
+#include "ini_parser.h"
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QDesktopServices>
@@ -11,7 +12,6 @@
 #include <QTextStream>
 #include <iostream>
 #include <stdio.h>
-
 launcher::launcher(QWidget* parent)
   : QWidget(parent)
 {
@@ -42,6 +42,7 @@ launcher::launcher(QWidget* parent)
   list->setBatchSize(50);
   list->setUniformItemSizes(true);
   list->setMovement(QListWidget::Static);
+
   if (list_layout == "grid") {
     list->setFlow(QListView::Flow::LeftToRight);
     list->setResizeMode(QListView::Adjust);
@@ -51,6 +52,8 @@ launcher::launcher(QWidget* parent)
     list->setSpacing(5);
   }
 
+  QObject::connect(
+    list, &QListWidget::itemDoubleClicked, this, &launcher::item_double_click);
   // loading most used
 
   if (app_launcher) {
@@ -72,6 +75,13 @@ launcher::launcher(QWidget* parent)
   layout->addWidget(list);
   setLayout(layout);
   input->setFocus();
+}
+
+void
+launcher::item_double_click(QListWidgetItem* item)
+
+{
+  start_process(item->data(EXEC_ROLE).toString());
 }
 
 void
@@ -130,30 +140,32 @@ launcher::load_stylesheet()
 void
 launcher::add_item(QString path, QString search_term)
 {
-  QSettings file(path, QSettings::IniFormat);
 
-  file.beginGroup("Desktop Entry");
-  if (file.value("Name").toString() != "") {
+  ini_parser file(path);
+
+  if (file.value("Name") != "") {
+
     QListWidgetItem* item = new QListWidgetItem();
-    QString exec = file.value("Exec").toString();
-    QString name = file.value("Name").toString();
-    QString icon = file.value("Icon").toString();
-    QString type = file.value("Type").toString();
-    QStringList searchable = file.value("Categories").toString().split(';');
+    QString exec = file.value("Exec");
+    QString name = file.value("Name");
+    QString icon = file.value("Icon");
+    QString type = file.value("Type");
+    QStringList searchable = file.value("Categories").split(';');
     searchable.push_front(name);
-    file.endGroup();
 
     if (searchable.filter(search_term, Qt::CaseInsensitive).length() > 0 &&
         list->findItems(name, Qt::MatchExactly).length() == 0) {
+
+      exec.replace(QRegExp(" %."), "");
       item->setData(EXEC_ROLE, exec);
       item->setData(NAME_ROLE, name);
       item->setData(ICON_ROLE, icon);
       item->setData(SEARCHABLE_ROLE, searchable);
       item->setData(TYPE_ROLE, type);
       item->setData(PATH_ROLE, path);
-
       item->setIcon(get_icon(icon));
       item->setText(name);
+
       if (list_layout == "grid")
         item->setSizeHint(list->sizeHint());
 
@@ -221,14 +233,21 @@ launcher::list_applications()
       }
     } else {
       for (auto& path : app_locations) {
+
         if (path != "") {
           QDirIterator it(QString::fromStdString(path),
                           QDir::Files | QDir::NoDot | QDir::NoDotAndDotDot,
                           QDirIterator::Subdirectories);
           while (it.hasNext()) {
             it.next();
-            stream << it.fileInfo().absoluteFilePath() << '\n';
-            app_list.push_back(it.fileInfo().absoluteFilePath());
+            QSettings file(it.fileInfo().absoluteFilePath(),
+                           QSettings::IniFormat);
+
+            if (file.allKeys().contains("Desktop Entry/exec",
+                                        Qt::CaseInsensitive)) {
+              stream << it.fileInfo().absoluteFilePath() << '\n';
+              app_list.push_back(it.fileInfo().absoluteFilePath());
+            }
           }
         }
       }
@@ -240,24 +259,27 @@ launcher::list_applications()
 QIcon
 launcher::get_icon(QString name)
 {
-  if (exec_mode != modes::file) {
-    if (QIcon::hasThemeIcon(name))
-      return QIcon::fromTheme(name);
-    else if (QFile(name).exists())
-      return QIcon(name);
-    else if (default_icon == "")
-      return QIcon::fromTheme("application-x-executable");
-    else
-      return QIcon(QString::fromStdString(default_icon));
-  } else {
-    QString icon_name = QMimeDatabase().mimeTypeForFile(name).genericIconName();
-    if (icon_name == "image-x-generic")
-      return QIcon(name);
-    else if (QIcon::hasThemeIcon(icon_name))
-      return QIcon::fromTheme(icon_name);
-    else
-      return QIcon::fromTheme("text-x-generic");
-  }
+
+  if (QIcon::hasThemeIcon(name))
+    return QIcon::fromTheme(name);
+  else if (QFile(name).exists())
+    return QIcon(name);
+  else if (default_icon == "")
+    return QIcon::fromTheme("application-x-executable");
+  else
+    return QIcon(QString::fromStdString(default_icon));
+}
+
+QIcon
+launcher::get_icon_file(QString name)
+{
+  QString icon_name = QMimeDatabase().mimeTypeForFile(name).iconName();
+  if (icon_name.contains("image", Qt::CaseInsensitive))
+    return QIcon(name);
+  else if (QIcon::hasThemeIcon(icon_name))
+    return QIcon::fromTheme(icon_name);
+  else
+    return QIcon::fromTheme("text-x-generic");
 }
 
 void
@@ -267,63 +289,75 @@ launcher::exit()
 };
 
 void
+launcher::start_process(QString command)
+{
+  QProcess process(nullptr);
+  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+
+  // Execution mode
+  switch (exec_mode) {
+
+    case modes::exec:
+    case modes::file: {
+      process.setProgram("/bin/sh");
+      process.setArguments(QStringList() << "-c" << command);
+      break;
+    }
+    case modes::term: {
+      process.setProgram(default_terminal.c_str());
+      QStringList args_full = command.split(" ");
+      args_full.prepend("-e");
+      process.setArguments(args_full);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  process.setProcessEnvironment(env);
+  process.setWorkingDirectory(getenv("HOME"));
+
+  if (process.startDetached()) {
+    most_used.removeAll(list->currentItem()->data(PATH_ROLE).toString());
+    most_used.push_front(list->currentItem()->data(PATH_ROLE).toString());
+    write_most_used();
+    exit();
+  }
+}
+
+void
 launcher::execute()
 {
   if (app_launcher) {
     if (exec_mode != modes::file) {
-      QProcess process(nullptr);
-      QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
 
       QString command = {};
       if (list->currentRow() < 0) { // If no suggestion is selected
         command = input->text();
-        for (auto& item : list->findItems(input->text(), Qt::MatchExactly)) {
+        for (auto& item :
+             list->findItems(input->text(), Qt::MatchFixedString)) {
           command = item->data(EXEC_ROLE).toString();
         }
       } else { // if suggestion is selected
         command = list->currentItem()->data(EXEC_ROLE).toString();
       }
 
-      // arguements
-      QStringList command_list = command.split(" ");
-      QStringList arguments(command_list);
-      arguments.removeFirst();
-      if (!arguments.isEmpty() && arguments.last().contains('%'))
-        arguments.pop_back();
+      start_process(command);
 
-      // Execution mode
-      switch (exec_mode) {
-        case modes::exec: {
-          process.setProgram(command_list.at(0));
-          process.setArguments(arguments);
-        }
-        case modes::term: {
-          process.setProgram(default_terminal.c_str());
-          QStringList args = command_list;
-          args.prepend("-e");
-          process.setArguments(args);
-        }
-        default: {
-          break;
-        }
-      }
-
-      process.setProcessEnvironment(env);
-
-      if (process.startDetached()) {
-        most_used.removeAll(list->currentItem()->data(PATH_ROLE).toString());
-        most_used.push_front(list->currentItem()->data(PATH_ROLE).toString());
-        write_most_used();
-        exit();
-      }
     } else if (list->currentRow() >= 0) {
-      QString type =
-        QMimeDatabase()
-          .mimeTypeForFile(list->currentItem()->data(PATH_ROLE).toString())
-          .genericIconName();
-      if (type == "folder")
+      QMimeType type = QMimeDatabase().mimeTypeForFile(
+        list->currentItem()->data(PATH_ROLE).toString());
+
+      if (type.inherits("inode/directory")) {
         list_files(list->currentItem()->data(PATH_ROLE).toString(), "");
-      else {
+        input->setText("");
+      } else if (type.inherits("application/x-desktop")) {
+
+        ini_parser file(list->currentItem()->data(PATH_ROLE).toString());
+        QString exec = file.value("Exec");
+
+        start_process(exec);
+      } else {
         QDesktopServices::openUrl(
           QUrl::fromLocalFile(list->currentItem()->data(PATH_ROLE).toString()));
         exit();
@@ -362,14 +396,16 @@ launcher::keyPressEvent(QKeyEvent* event)
         break;
       }
       case Qt::Key_Up: {
-        int step = list->size().width() / list->gridSize().width();
-        if (list->currentRow() == -1)
-          list->setCurrentRow(list->count() - 1);
-        else if (list->currentRow() == list->count() - step - 1)
-          list->setCurrentRow(0);
-        else
-          list->setCurrentRow(list->currentRow() - step);
-        break;
+        if (list_layout == "grid") {
+          int step = list->size().width() / list->gridSize().width();
+          if (list->currentRow() == -1)
+            list->setCurrentRow(list->count() - 1);
+          else if (list->currentRow() == list->count() - step - 1)
+            list->setCurrentRow(0);
+          else
+            list->setCurrentRow(list->currentRow() - step);
+          break;
+        }
       }
       case Qt::Key_Left: {
         if (list->currentRow() == 0)
@@ -380,14 +416,16 @@ launcher::keyPressEvent(QKeyEvent* event)
         break;
       }
       case Qt::Key_Down: {
-        int step = list->size().width() / list->gridSize().width();
-        if (list->currentRow() == -1)
-          list->setCurrentRow(0);
-        else if (list->currentRow() == list->count() - step - 1)
-          list->setCurrentRow(0);
-        else
-          list->setCurrentRow(list->currentRow() + step);
-        break;
+        if (list_layout == "grid") {
+          int step = list->size().width() / list->gridSize().width();
+          if (list->currentRow() == -1)
+            list->setCurrentRow(0);
+          else if (list->currentRow() == list->count() - step - 1)
+            list->setCurrentRow(0);
+          else
+            list->setCurrentRow(list->currentRow() + step);
+          break;
+        }
       }
       case Qt::Key_Right: {
         if (list->currentRow() == list->count() - 1)
@@ -403,10 +441,17 @@ launcher::keyPressEvent(QKeyEvent* event)
       }
       case Qt::Key_Tab: {
         if (list->count() > 0) {
-          if (list->currentRow() >= 0)
-            input->setText(list->currentItem()->text());
-          else
-            input->setText(list->item(0)->text());
+          if (exec_mode != modes::file) {
+            if (list->currentRow() >= 0)
+              input->setText(list->currentItem()->data(EXEC_ROLE).toString());
+            else
+              input->setText(list->item(0)->data(EXEC_ROLE).toString());
+          } else {
+            if (list->currentRow() >= 0)
+              input->setText(list->currentItem()->data(PATH_ROLE).toString());
+            else
+              input->setText(list->item(0)->data(PATH_ROLE).toString());
+          }
         }
         break;
       }
@@ -501,6 +546,7 @@ launcher::load_config()
           this->*var_pointer = val.toStdString();
         } else {
           if (parm == "check locations") {
+
             for (auto& path : val.split(',')) {
               app_locations.push_back(path.trimmed().toStdString());
             }
@@ -553,8 +599,15 @@ launcher::list_files(QString path, QString search_word)
     if (file.contains(search_word, Qt::CaseInsensitive)) {
       QListWidgetItem* item = new QListWidgetItem();
       QFileInfo fileinfo(dir, file);
+      QMimeType type = QMimeDatabase().mimeTypeForFile(file);
+
+      if (type.inherits("application/x-desktop")) {
+        ini_parser ini(fileinfo.absoluteFilePath());
+        item->setIcon(get_icon(ini.value("Icon")));
+      } else
+        item->setIcon(get_icon_file(fileinfo.absoluteFilePath()));
       item->setText(file);
-      item->setIcon(get_icon(fileinfo.absoluteFilePath()));
+
       item->setData(PATH_ROLE, fileinfo.absoluteFilePath());
       if (list_layout == "grid")
         item->setSizeHint(list->sizeHint());

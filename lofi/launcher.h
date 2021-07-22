@@ -5,6 +5,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListWidget>
+#include <QMimeType>
 #include <QVBoxLayout>
 #include <QWidget>
 #include <map>
@@ -62,6 +63,7 @@ public:
     { "default icon", &launcher::default_icon },
     { "default terminal", &launcher::default_terminal },
     { "max recents", &launcher::max_num },
+
     { "layout", &launcher::list_layout },
     { "grid size", &launcher::grid_size_stirng }
   };
@@ -88,12 +90,16 @@ protected:
   void exit();
 
   void execute();
+  void start_process(QString command);
   void parse_arguements();
 
   QIcon get_icon(QString name);
+  QIcon get_icon_file(QString name);
 
   // configurable
 signals:
+public slots:
+  void item_double_click(QListWidgetItem* item);
 };
 
 #endif // LAUNCHER_H
