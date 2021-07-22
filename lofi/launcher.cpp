@@ -332,12 +332,12 @@ launcher::execute()
     if (exec_mode != modes::file) {
 
       QString command = {};
-      if (list->currentRow() < 0) { // If no suggestion is selected
+      if (exec_mode == modes::term)
         command = input->text();
-        for (auto& item :
-             list->findItems(input->text(), Qt::MatchFixedString)) {
-          command = item->data(EXEC_ROLE).toString();
-        }
+      else if (list->currentRow() < 0 &&
+               list->count() > 1) { // If no suggestion is selected
+        command = list->item(0)->data(EXEC_ROLE).toString();
+        app_list.filter(command);
       } else { // if suggestion is selected
         command = list->currentItem()->data(EXEC_ROLE).toString();
       }
