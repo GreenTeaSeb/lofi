@@ -81,7 +81,8 @@ void
 launcher::item_double_click(QListWidgetItem* item)
 
 {
-  start_process(item->data(EXEC_ROLE).toString());
+  start_process(item->data(EXEC_ROLE).toString(),
+                item->data(PATH_ROLE).toString());
 }
 
 void
@@ -289,7 +290,7 @@ launcher::exit()
 };
 
 void
-launcher::start_process(QString command)
+launcher::start_process(QString command, QString path_to_write)
 {
   QProcess process(nullptr);
   QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
@@ -318,9 +319,11 @@ launcher::start_process(QString command)
   process.setWorkingDirectory(getenv("HOME"));
 
   if (process.startDetached()) {
-    most_used.removeAll(list->currentItem()->data(PATH_ROLE).toString());
-    most_used.push_front(list->currentItem()->data(PATH_ROLE).toString());
-    write_most_used();
+    if (!path_to_write.isEmpty()) {
+      most_used.removeAll(path_to_write);
+      most_used.push_front(path_to_write);
+      write_most_used();
+    }
     exit();
   }
 }
@@ -328,21 +331,25 @@ launcher::start_process(QString command)
 void
 launcher::execute()
 {
+
   if (app_launcher) {
     if (exec_mode != modes::file) {
 
       QString command = {};
+      QString path = {};
       if (exec_mode == modes::term)
         command = input->text();
       else if (list->currentRow() < 0 &&
-               list->count() > 1) { // If no suggestion is selected
+               list->count() >= 1) { // If no suggestion is selected
         command = list->item(0)->data(EXEC_ROLE).toString();
-        app_list.filter(command);
-      } else { // if suggestion is selected
-        command = list->currentItem()->data(EXEC_ROLE).toString();
-      }
+        path = list->item(0)->data(PATH_ROLE).toString();
 
-      start_process(command);
+      } else if (list->count() > 0) { // if suggestion is selected
+        command = list->currentItem()->data(EXEC_ROLE).toString();
+        path = list->currentItem()->data(PATH_ROLE).toString();
+      }
+      if (!command.isEmpty())
+        start_process(command, path);
 
     } else if (list->currentRow() >= 0) {
       QMimeType type = QMimeDatabase().mimeTypeForFile(
@@ -356,7 +363,7 @@ launcher::execute()
         ini_parser file(list->currentItem()->data(PATH_ROLE).toString());
         QString exec = file.value("Exec");
 
-        start_process(exec);
+        start_process(exec, "");
       } else {
         QDesktopServices::openUrl(
           QUrl::fromLocalFile(list->currentItem()->data(PATH_ROLE).toString()));

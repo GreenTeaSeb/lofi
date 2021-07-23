@@ -90,7 +90,7 @@ protected:
   void exit();
 
   void execute();
-  void start_process(QString command);
+  void start_process(QString command, QString path_to_write);
   void parse_arguements();
 
   QIcon get_icon(QString name);
