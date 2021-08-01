@@ -11,7 +11,7 @@ If you use a WM, you will need to make this app launch in floating mode manually
 
 ## Modes
 Term: whatever you type in will be launched in your default terminal  
-Exec: Launched the process directly, anything after the name of the application will be used as arguements, so be careful of spaces.
+Exec: Launched the process directly by pressing enter on the selected icon, by default it's the 1st one.  
 File: file browser, opens up files with the default application that is set for that type   
 
 ## Usage
@@ -117,7 +117,7 @@ Here's an example of a customized style
             font-size: large;
       }
       
-      #input, #mode{ 
+      #input, #mode{
             color: white;
             background:rgba(0, 0, 0, 100);
             border-radius: 10px;
