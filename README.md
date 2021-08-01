@@ -117,7 +117,7 @@ Here's an example of a customized style
             font-size: large;
       }
       
-      #input, #mode{
+      #input, #mode{ 
             color: white;
             background:rgba(0, 0, 0, 100);
             border-radius: 10px;
