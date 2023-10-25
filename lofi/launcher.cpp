@@ -20,12 +20,9 @@ launcher::launcher(QWidget* parent)
   load_stylesheet();
   parse_arguements();
 
-  Qt::WindowFlags flags = this->windowFlags();
-  this->setWindowFlags(flags | Qt::FramelessWindowHint |
-                       Qt::WindowStaysOnTopHint);
   this->setAttribute(Qt::WA_StyledBackground);
   this->resize(720, 400);
-  this->setMinimumSize(720, 400);
+  this->setFixedSize(720, 400);
 
   // input
   input->setObjectName("input");
@@ -75,6 +72,8 @@ launcher::launcher(QWidget* parent)
   layout->addWidget(list);
   setLayout(layout);
   input->setFocus();
+
+
 }
 
 void
@@ -402,6 +401,7 @@ launcher::keyPressEvent(QKeyEvent* event)
         update_list(input->text().toStdString());
         break;
       }
+      case Qt::Key_K:
       case Qt::Key_Up: {
         if (list_layout == "grid") {
           int step = list->size().width() / list->gridSize().width();
@@ -414,6 +414,7 @@ launcher::keyPressEvent(QKeyEvent* event)
           break;
         }
       }
+      case Qt::Key_L:
       case Qt::Key_Left: {
         if (list->currentRow() == 0)
           list->setCurrentRow(list->count() - 1);
@@ -422,6 +423,7 @@ launcher::keyPressEvent(QKeyEvent* event)
 
         break;
       }
+      case Qt::Key_J:
       case Qt::Key_Down: {
         if (list_layout == "grid") {
           int step = list->size().width() / list->gridSize().width();
@@ -434,6 +436,7 @@ launcher::keyPressEvent(QKeyEvent* event)
           break;
         }
       }
+      case Qt::Key_H:
       case Qt::Key_Right: {
         if (list->currentRow() == list->count() - 1)
           list->setCurrentRow(0);
